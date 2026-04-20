@@ -98,9 +98,13 @@ export default function AiPage() {
 
           <div className="mt-6 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">AI Response</p>
-            <p className="mt-3 text-sm leading-7 text-slate-700">
-              {answer || "Your AI response will appear here after you submit a question."}
-            </p>
+            {loadingAnswer ? (
+              <p className="mt-3 text-sm leading-7 text-slate-500">Generating response...</p>
+            ) : (
+              <p className="mt-3 text-sm leading-7 text-slate-700">
+                {answer || "Your AI response will appear here after you submit a question."}
+              </p>
+            )}
           </div>
         </Panel>
       </div>

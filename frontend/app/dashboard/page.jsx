@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ProtectedShell } from "@/components/protected-shell";
-import { apiRequest } from "@/lib/api";
+import { apiRequest, downloadFile } from "@/lib/api";
 import { useSession } from "@/components/session-provider";
 import { StatCard } from "@/components/stat-card";
 import { Panel } from "@/components/panel";
@@ -13,8 +13,10 @@ export default function DashboardPage() {
   const { token, user } = useSession();
   const [logs, setLogs] = useState([]);
   const [patterns, setPatterns] = useState([]);
+  const [predictions, setPredictions] = useState([]);
   const [weeklySummary, setWeeklySummary] = useState("");
   const [loading, setLoading] = useState(true);
+  const [downloadingReport, setDownloadingReport] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -27,14 +29,17 @@ export default function DashboardPage() {
       setError("");
 
       try {
-        const [logResponse, patternResponse, weeklySummaryResponse] = await Promise.all([
+        const [logResponse, patternResponse, predictionResponse, weeklySummaryResponse] =
+          await Promise.all([
           apiRequest("/logs", { token }),
           apiRequest("/analytics/patterns", { token }),
+          apiRequest("/analytics/predictions", { token }),
           apiRequest("/ai/weekly-summary", { token }),
-        ]);
+          ]);
 
         setLogs(logResponse.logs || []);
         setPatterns(patternResponse.patterns || []);
+        setPredictions(predictionResponse.predictions || []);
         setWeeklySummary(weeklySummaryResponse.response || "");
       } catch (requestError) {
         setError(requestError.message);
@@ -55,6 +60,22 @@ export default function DashboardPage() {
       ? (logs.reduce((sum, log) => sum + Number(log.sleep_hours), 0) / logs.length).toFixed(1)
       : "0.0";
   const exerciseDays = logs.filter((log) => log.exercised).length;
+
+  const handleDownloadReport = async () => {
+    setDownloadingReport(true);
+    setError("");
+
+    try {
+      await downloadFile("/export/pdf", {
+        token,
+        filename: "health-report.pdf",
+      });
+    } catch (downloadError) {
+      setError(downloadError.message);
+    } finally {
+      setDownloadingReport(false);
+    }
+  };
 
   return (
     <ProtectedShell>
@@ -88,6 +109,14 @@ export default function DashboardPage() {
             >
               Open AI
             </Link>
+            <button
+              type="button"
+              onClick={handleDownloadReport}
+              disabled={downloadingReport}
+              className="rounded-full border border-white/25 px-5 py-3 text-sm font-semibold text-white transition hover:border-white/50 hover:bg-white/10 disabled:opacity-60"
+            >
+              {downloadingReport ? "Preparing Report..." : "Download Health Report"}
+            </button>
           </div>
         </div>
 
@@ -122,7 +151,7 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="mt-6 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+      <section className="mt-6">
         <Panel title="Logs Timeline" subtitle="Recent entries presented as compact health cards">
           {loading ? (
             <p className="text-sm text-slate-500">Loading logs...</p>
@@ -184,8 +213,10 @@ export default function DashboardPage() {
             </div>
           )}
         </Panel>
+      </section>
 
-        <Panel title="Pattern Highlights" subtitle="Fast read from the analytics endpoint">
+      <section className="mt-6 grid gap-6 xl:grid-cols-2">
+        <Panel title="Patterns" subtitle="Recurring relationships found in your recent logs">
           {loading ? (
             <p className="text-sm text-slate-500">Loading patterns...</p>
           ) : (
@@ -195,11 +226,9 @@ export default function DashboardPage() {
                   <div
                     key={pattern}
                     className={`rounded-[1.75rem] border px-5 py-5 text-sm leading-7 shadow-sm ${
-                      index % 3 === 0
+                      index % 2 === 0
                         ? "border-sky-100 bg-sky-50 text-slate-700"
-                        : index % 3 === 1
-                          ? "border-emerald-100 bg-emerald-50 text-slate-700"
-                          : "border-amber-100 bg-amber-50 text-slate-700"
+                        : "border-emerald-100 bg-emerald-50 text-slate-700"
                     }`}
                   >
                     <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Pattern</p>
@@ -207,6 +236,33 @@ export default function DashboardPage() {
                   </div>
                 )
               )}
+            </div>
+          )}
+        </Panel>
+
+        <Panel title="Predictions" subtitle="Simple risk estimates from recent health history">
+          {loading ? (
+            <p className="text-sm text-slate-500">Loading predictions...</p>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-1">
+              {(predictions.length
+                ? predictions
+                : [
+                    { type: "headache", risk: "0%" },
+                    { type: "allergy", risk: "0%" },
+                    { type: "fatigue", risk: "0%" },
+                  ]).map((prediction) => (
+                <div
+                  key={prediction.type}
+                  className="rounded-[1.75rem] border border-amber-100 bg-amber-50 p-5"
+                >
+                  <p className="text-xs uppercase tracking-[0.22em] text-amber-700">
+                    {prediction.type}
+                  </p>
+                  <p className="mt-3 text-3xl font-semibold text-ink">{prediction.risk}</p>
+                  <p className="mt-2 text-sm text-slate-600">Estimated risk for the selected signal</p>
+                </div>
+              ))}
             </div>
           )}
         </Panel>

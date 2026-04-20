@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
 import { useSession } from "@/components/session-provider";
@@ -8,10 +8,16 @@ import { AuthShell } from "@/components/auth-shell";
 
 export default function SignupPage() {
   const router = useRouter();
-  const { saveSession } = useSession();
+  const { saveSession, token, isReady } = useSession();
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isReady && token) {
+      router.replace("/dashboard");
+    }
+  }, [isReady, router, token]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -25,7 +31,7 @@ export default function SignupPage() {
       });
 
       saveSession(response.token, response.user);
-      router.push("/dashboard");
+      router.replace("/dashboard");
     } catch (requestError) {
       setError(requestError.message);
     } finally {

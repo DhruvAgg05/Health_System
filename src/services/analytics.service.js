@@ -82,6 +82,17 @@ const fetchLogsForAnalysis = async (userId, days) => {
   }));
 };
 
+const formatRisk = (casesWithCondition, totalConditionCases) => {
+  if (totalConditionCases === 0) {
+    return "0%";
+  }
+
+  return `${roundPercentage((casesWithCondition / totalConditionCases) * 100)}%`;
+};
+
+const hasSymptom = (log, symptomName) =>
+  log.symptoms.some((symptom) => String(symptom).toLowerCase() === symptomName);
+
 const buildSleepPatterns = (logs) => {
   const lowSleepLogs = logs.filter((log) => log.sleep_hours < 6);
   const adequateSleepLogs = logs.filter((log) => log.sleep_hours >= 6);
@@ -251,6 +262,37 @@ const detectPatterns = async ({ userId, days }) => {
   };
 };
 
+const calculatePredictions = async ({ userId, days }) => {
+  const analysisDays = parseDays(days);
+  const logs = await fetchLogsForAnalysis(userId, analysisDays);
+
+  const lowSleepLogs = logs.filter((log) => log.sleep_hours < 6);
+  const outsideFoodLogs = logs.filter((log) => classifyFoodType(log.food_type) === "outside");
+  const nonExerciseLogs = logs.filter((log) => log.exercised === false);
+
+  const headacheCases = lowSleepLogs.filter((log) => hasSymptom(log, "headache")).length;
+  const allergyCases = outsideFoodLogs.filter((log) => hasSymptom(log, "allergy")).length;
+  const fatigueCases = nonExerciseLogs.filter((log) => hasSymptom(log, "fatigue")).length;
+
+  return {
+    predictions: [
+      {
+        type: "headache",
+        risk: formatRisk(headacheCases, lowSleepLogs.length),
+      },
+      {
+        type: "allergy",
+        risk: formatRisk(allergyCases, outsideFoodLogs.length),
+      },
+      {
+        type: "fatigue",
+        risk: formatRisk(fatigueCases, nonExerciseLogs.length),
+      },
+    ],
+  };
+};
+
 module.exports = {
   detectPatterns,
+  calculatePredictions,
 };

@@ -247,8 +247,51 @@ const getRecentHealthLogs = async (userId) => {
   }));
 };
 
+const getHealthLogsByDays = async (userId, days) => {
+  const result = await pool.query(
+    `SELECT
+        hl.id,
+        hl.user_id,
+        hl.log_date,
+        hl.mood,
+        hl.sleep_hours,
+        hl.food_type,
+        hl.exercised,
+        hl.outdoor_exposure,
+        hl.notes,
+        hl.created_at,
+        COALESCE(
+          ARRAY_AGG(s.name ORDER BY s.name) FILTER (WHERE s.name IS NOT NULL),
+          ARRAY[]::VARCHAR[]
+        ) AS symptoms
+      FROM health_logs hl
+      LEFT JOIN log_symptoms ls ON ls.log_id = hl.id
+      LEFT JOIN symptoms s ON s.id = ls.symptom_id
+      WHERE hl.user_id = $1
+        AND hl.log_date >= CURRENT_DATE - (($2::int) - 1)
+      GROUP BY hl.id
+      ORDER BY hl.log_date DESC, hl.created_at DESC`,
+    [userId, days]
+  );
+
+  return result.rows.map((log) => ({
+    id: log.id,
+    user_id: log.user_id,
+    log_date: log.log_date,
+    mood: log.mood,
+    sleep_hours: Number(log.sleep_hours),
+    food_type: log.food_type,
+    exercised: log.exercised,
+    outdoor_exposure: log.outdoor_exposure,
+    notes: log.notes,
+    symptoms: log.symptoms,
+    created_at: log.created_at,
+  }));
+};
+
 module.exports = {
   ensureHealthLogTables,
   createHealthLog,
+  getHealthLogsByDays,
   getRecentHealthLogs,
 };

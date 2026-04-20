@@ -1,4 +1,4 @@
-const { generatePdfReport } = require("../services/export.service");
+const { generatePdfReport } = require("../services/pdf.service");
 
 const exportPdf = async (req, res, next) => {
   try {

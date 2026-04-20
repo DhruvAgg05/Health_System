@@ -146,6 +146,26 @@ Example response:
 }
 ```
 
+`GET /api/v1/analytics/predictions`
+
+Protected route. Optional query param:
+
+```text
+days=30 to 90
+```
+
+Example response:
+
+```json
+{
+  "predictions": [
+    { "type": "headache", "risk": "70%" },
+    { "type": "allergy", "risk": "40%" },
+    { "type": "fatigue", "risk": "50%" }
+  ]
+}
+```
+
 ## AI Query
 
 `POST /api/v1/ai/query`
