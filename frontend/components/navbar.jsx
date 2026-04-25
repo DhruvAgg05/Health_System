@@ -7,6 +7,7 @@ import { useSession } from "@/components/session-provider";
 const protectedLinks = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/add-log", label: "Add Log" },
+  { href: "/reports", label: "Reports" },
   { href: "/ai", label: "AI" },
 ];
 

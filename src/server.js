@@ -3,6 +3,7 @@ const app = require("./app");
 const { testConnection } = require("./config/db");
 const { ensureUsersTable } = require("./services/auth.service");
 const { ensureHealthLogTables } = require("./services/logs.service");
+const { ensureMedicalReportsTable } = require("./services/reports.service");
 
 dotenv.config();
 
@@ -13,6 +14,7 @@ const startServer = async () => {
     await testConnection();
     await ensureUsersTable();
     await ensureHealthLogTables();
+    await ensureMedicalReportsTable();
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });

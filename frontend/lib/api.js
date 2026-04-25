@@ -104,3 +104,30 @@ export async function downloadFile(path, { token, filename = "download" } = {}) 
     throw new Error(normalizeErrorMessage(error, "Download failed"));
   }
 }
+
+export async function uploadForm(path, { formData, token } = {}) {
+  try {
+    const response = await fetch(`${API_URL}${path}`, {
+      method: "POST",
+      headers: buildHeaders(token, false),
+      body: formData,
+      cache: "no-store",
+    });
+
+    let data = null;
+
+    try {
+      data = await response.json();
+    } catch (error) {
+      data = null;
+    }
+
+    if (!response.ok) {
+      throw new Error(data?.message || "Upload failed");
+    }
+
+    return data;
+  } catch (error) {
+    throw new Error(normalizeErrorMessage(error, "Upload failed"));
+  }
+}
